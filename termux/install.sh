@@ -23,7 +23,8 @@ pkg install -y python git curl
 
 echo
 echo "[2/5] 安装 Python 依赖..."
-pip install --upgrade pip
+# 不要 pip install --upgrade pip：Termux 的 python-pip 由包管理器托管，
+# 自升级会报 "Installing pip is forbidden, this will break the python-pip package"
 pip install -r "$REPO_DIR/requirements.txt"
 
 echo
