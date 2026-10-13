@@ -37,11 +37,17 @@ BAN_IP_ENABLED = loadSettings("BAN_IP")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Android 上模板和静态文件是随 APK 打包、首次运行解压出来的，
+# 不能依赖 __file__（Chaquopy 里它指向 APK 内部的虚拟路径）。
+WEBUI_DIR = os.environ.get("PAN123_WEBUI_DIR")
+TEMPLATE_DIR = os.path.join(WEBUI_DIR, "templates") if WEBUI_DIR else os.path.join(BASE_DIR, "templates")
+STATIC_DIR = os.path.join(WEBUI_DIR, "static") if WEBUI_DIR else os.path.join(BASE_DIR, "static")
+
 # --- Flask 应用初始化 ---
 app = Flask(
     __name__,
-    static_folder=os.path.join(BASE_DIR, 'static'),
-    template_folder=os.path.join(BASE_DIR,'templates')
+    static_folder=STATIC_DIR,
+    template_folder=TEMPLATE_DIR
     )
 app.secret_key = SECRET_KEY
 

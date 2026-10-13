@@ -3,24 +3,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import uvicorn
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse, JSONResponse
-from a2wsgi import WSGIMiddleware
+from flask import jsonify, redirect
 
-from loadSettings import loadSettings, SETTINGS_PATH, DATA_DIR
+from loadSettings import DATA_DIR, SETTINGS_PATH, loadSettings
 from getGlobalLogger import logger
 
 BIND_HOST = loadSettings("BIND_HOST")
 PORT = int(loadSettings("PORT"))
 WEBDAV_MOUNT_PATH = loadSettings("WEBDAV_MOUNT_PATH") or "/dav"
-
-app = FastAPI(
-    title="123Pan Unlimited (merged)",
-    docs_url=None,
-    redoc_url=None,
-    openapi_url=None,
-)
 
 
 def _check_insecure_defaults():
@@ -43,54 +33,62 @@ def _check_insecure_defaults():
         )
 
 
-_check_insecure_defaults()
+def create_app():
+    """把 WebDAV 蓝图挂到面板同一个 Flask 应用上。"""
+    import web  # 面板路由，import 时即完成注册
+    from webdav import webdav_bp
 
-# WebDAV 路由必须先注册，才能优先于挂到 "/" 的 Flask 面板匹配
-from webdav_router import router as webdav_router  # noqa: E402
+    _check_insecure_defaults()
 
-app.include_router(webdav_router, prefix=WEBDAV_MOUNT_PATH)
+    web.app.register_blueprint(webdav_bp, url_prefix=WEBDAV_MOUNT_PATH)
 
-# 少数客户端不会自动补末尾斜杠
-_MOUNT_NO_SLASH = WEBDAV_MOUNT_PATH.rstrip("/")
+    @web.app.get("/healthz")
+    def _healthz():
+        import file_system
 
+        return jsonify(
+            {
+                "status": "ok",
+                "dataDir": DATA_DIR,
+                "settings": SETTINGS_PATH,
+                "webdav": f"http://{BIND_HOST}:{PORT}{WEBDAV_MOUNT_PATH}",
+                "vfsLoaded": getattr(file_system, "_vfs", None) is not None,
+            }
+        )
 
-@app.get(_MOUNT_NO_SLASH, include_in_schema=False)
-def _webdav_root_redirect():
-    return RedirectResponse(url=WEBDAV_MOUNT_PATH + "/", status_code=307)
+    # 少数客户端不会自动补末尾斜杠
+    @web.app.get(WEBDAV_MOUNT_PATH.rstrip("/"))
+    def _webdav_root_redirect():
+        return redirect(WEBDAV_MOUNT_PATH + "/", code=307)
 
-
-@app.get("/healthz", include_in_schema=False)
-def _healthz():
-    return JSONResponse(
-        {
-            "status": "ok",
-            "dataDir": DATA_DIR,
-            "settings": SETTINGS_PATH,
-            "webdav": f"http://{BIND_HOST}:{PORT}{WEBDAV_MOUNT_PATH}",
-            "vfsLoaded": "file_system" in sys.modules
-            and getattr(sys.modules["file_system"], "_vfs", None) is not None,
-        }
-    )
+    return web.app
 
 
-# Flask 面板（分享导出、搜索、管理后台）挂在根路径
-import web  # noqa: E402
-
-app.mount("/", WSGIMiddleware(web.app))
-
+app = create_app()
 
 logger.info(f"配置文件: {SETTINGS_PATH}")
 logger.info(f"数据目录: {DATA_DIR}")
-logger.info(f"网页面板: http://{BIND_HOST}:{PORT}/  (管理后台 /{loadSettings('ADMIN_ENTRY')}/login)")
+logger.info(
+    f"网页面板: http://{BIND_HOST}:{PORT}/  (管理后台 /{loadSettings('ADMIN_ENTRY')}/login)"
+)
 logger.info(f"WebDAV:   http://{BIND_HOST}:{PORT}{WEBDAV_MOUNT_PATH}")
 
 
+def serve(host=None, port=None):
+    """用纯 Python 的 waitress 启动，避免任何 C 扩展依赖（Android 上必需）。"""
+    host = BIND_HOST if host is None else host
+    port = PORT if port is None else int(port)
+    try:
+        from waitress import serve as _waitress_serve
+    except ImportError:
+        logger.warning("未安装 waitress，退回 Werkzeug 开发服务器（仅适合调试）")
+        from werkzeug.serving import run_simple
+
+        run_simple(host, port, app, threaded=True)
+        return
+    logger.info(f"waitress 已启动: http://{host}:{port}/")
+    _waitress_serve(app, host=host, port=port, threads=8, ident="123pan")
+
+
 if __name__ == "__main__":
-    uvicorn.run(
-        app,
-        host=BIND_HOST,
-        port=PORT,
-        log_level="warning",
-        access_log=False,
-        timeout_graceful_shutdown=5,
-    )
+    serve()

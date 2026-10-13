@@ -1,40 +1,51 @@
 # -*- coding: utf-8 -*-
 
+import base64
 import secrets
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from functools import wraps
+
+from flask import request, Response
 
 from loadSettings import loadSettings
 from getGlobalLogger import logger
 
-# 创建一个 HTTPBasic 安全实例
-security = HTTPBasic()
+# WebDAV 用户名/密码在服务启动时读取一次；改密码后重启服务生效
+CORRECT_USERNAME = str(loadSettings("WEBDAV_USERNAME"))
+CORRECT_PASSWORD = str(loadSettings("WEBDAV_PASSWORD"))
 
-# 定义正确的用户名和密码
-CORRECT_USERNAME = loadSettings("WEBDAV_USERNAME")
-CORRECT_PASSWORD = loadSettings("WEBDAV_PASSWORD")
+_UNAUTHORIZED = Response(
+    "需要 WebDAV 认证",
+    status=401,
+    headers={"WWW-Authenticate": 'Basic realm="123Pan", charset="UTF-8"'},
+)
 
-def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
-    """
-    一个 FastAPI 依赖项，用于校验 HTTP Basic 认证提供的用户名和密码。
 
-    Args:
-        credentials (HTTPBasicCredentials): FastAPI 从请求头中解析出的认证信息。
+def _parse_basic(header: str):
+    """从 Authorization 头解出 (username, password)，格式不对返回 None。"""
+    if not header or not header.lower().startswith("basic "):
+        return None
+    token = header.split(None, 1)[1].strip()
+    try:
+        # 部分客户端会省略 base64 填充，这里补齐再解
+        decoded = base64.b64decode(token + "=" * (-len(token) % 4)).decode("utf-8")
+    except Exception:
+        return None
+    if ":" not in decoded:
+        return None
+    username, password = decoded.split(":", 1)
+    return username, password
 
-    Raises:
-        HTTPException: 如果认证失败，则抛出 401 Unauthorized 异常。
-    """
-    # 使用 secrets.compare_digest 来安全地比较字符串，可以防止时序攻击
-    is_correct_username = secrets.compare_digest(credentials.username, str(CORRECT_USERNAME))
-    is_correct_password = secrets.compare_digest(credentials.password, str(CORRECT_PASSWORD))
 
-    if not (is_correct_username and is_correct_password):
-        # 如果认证失败，构造并抛出异常
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码不正确",
-            # 必须包含 WWW-Authenticate 头，以便浏览器或客户端弹出认证对话框
-            headers={"WWW-Authenticate": "Basic"},
-        )
+def require_basic_auth(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        credentials = _parse_basic(request.headers.get("Authorization", ""))
+        if credentials is None or not (
+            secrets.compare_digest(credentials[0].encode(), CORRECT_USERNAME.encode())
+            and secrets.compare_digest(credentials[1].encode(), CORRECT_PASSWORD.encode())
+        ):
+            return _UNAUTHORIZED
+        logger.debug(f"用户 '{credentials[0]}' WebDAV 认证成功。")
+        return func(*args, **kwargs)
 
-    logger.debug(f"用户 '{credentials.username}' WebDAV 认证成功。")
+    return wrapper
