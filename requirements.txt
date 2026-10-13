@@ -1,0 +1,8 @@
+flask
+pyyaml
+requests
+tqdm
+beautifulsoup4
+fastapi
+uvicorn
+a2wsgi

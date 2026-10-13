@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+logs/
+data/
+*.db
+*.db-wal
+*.db-shm
+cache.json
+export/
+share/
+latest.db
+*_message_raw.json
+*_message_processed.json
+settings.yaml

@@ -1,0 +1,4 @@
+# Termux 的 bash 遇到 CRLF 会直接报错，全仓库统一 LF
+* text=auto eol=lf
+*.png binary
+*.jpg binary

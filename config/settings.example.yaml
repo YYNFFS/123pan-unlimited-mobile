@@ -1,0 +1,63 @@
+# ============================================================
+# 123Pan Unlimited 合并版（分享导出 + WebDAV）配置模板
+# 安装时会被复制到 ~/.123pan/settings.yaml，改那一份，不要改模板
+# ============================================================
+
+# ---------- 服务监听 ----------
+# 0.0.0.0 = 局域网其他设备（电视/盒子/播放器）都能连
+# 127.0.0.1 = 只允许手机本机访问（最安全）
+# 注意：监听 0.0.0.0 时若仍使用下面的默认密码，服务会拒绝启动
+BIND_HOST: "0.0.0.0"
+PORT: 33333
+
+# WebDAV 挂载路径。播放器地址填 http://<手机IP>:33333/dav
+WEBDAV_MOUNT_PATH: "/dav"
+
+# ---------- WebDAV 账号（播放器里填这个）----------
+WEBDAV_USERNAME: "admin"
+WEBDAV_PASSWORD: "123456"
+
+# ---------- 123 云盘账号（WebDAV 秒传取直链用，必须是有效账号）----------
+123PAN_USERNAME: "13566666666"
+123PAN_PASSWORD: "123456"
+
+# WebDAV 取直链失败时重定向到的占位视频；留空则直接返回 502，便于排查
+WEBDAV_FALLBACK_URL: ""
+
+# ---------- 数据库 ----------
+# 相对路径都落在数据目录 ~/.123pan 下
+DATABASE_PATH: "data/PAN123DATABASE.db"
+
+# 分桶目录：库条目多(>1000)时才需要 True，否则根目录套一层 00-ff 桶，看着难受
+# 只挂自己导出的库通常几十上百条，保持 False 可以直接在根目录看到分享名
+# 若以后改用 pan download-db 拉作者的公共库，务必改回 True 并重启
+SPLIT_FOLDER: False
+
+# ---------- 网页管理后台 ----------
+# 后台地址: http://<IP>:<PORT>/{ADMIN_ENTRY}/login
+ADMIN_ENTRY: "admin_abcdefg"
+ADMIN_USERNAME: "admin"
+ADMIN_PASSWORD: "123456"
+
+# Flask session 签名密钥，多人使用前必须改掉
+SECRET_KEY: "114514"
+
+# 分享导入/导出的排队超时（秒）
+TASK_QUEUE_TIMEOUT_SECONDS: 600
+
+# ---------- 日志 ----------
+LOG_DIR: "logs"
+# DEBUG / INFO / WARNING / ERROR / CRITICAL，手机上日常建议 INFO
+LOGGING_LEVEL: "INFO"
+
+# ---------- 访问限制 ----------
+# 手机在大陆网络下请保持 False，开启会把自己的 IP 判定为“不受支持区域”并重定向
+BAN_IP: False
+
+# ---------- Telegram 爬虫（telegramSpider.py 手动运行时使用）----------
+CHANNEL_NAME: ""
+MESSAGE_AFTER_ID: 8050
+
+# ---------- 网络 ----------
+# 所有 123 云盘 API 请求的超时（秒），弱网下避免线程被永久挂住
+REQUEST_TIMEOUT_SECONDS: 30
