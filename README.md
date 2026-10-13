@@ -49,9 +49,11 @@
 
 ```bash
 pkg update -y && pkg install -y git
-git clone https://github.com/<你的仓库>/123pan-mobile.git ~/123pan-mobile
+git clone https://github.com/YYNFFS/123pan-unlimited-mobile.git ~/123pan-mobile
 cd ~/123pan-mobile && bash termux/install.sh
 ```
+
+> 这是 **Private 私有仓库**，`git clone` 时 GitHub 会要凭据。最省事的做法：在 GitHub → Settings → Developer settings → Personal access tokens 生成一个只勾 `repo` 读权限的 fine-grained token，clone 时用户名填你的 GitHub 用户名、密码位置粘贴该 token。或者装 `gh`（Termux: `pkg install gh` → `gh auth login`）后用 `gh repo clone YYNFFS/123pan-unlimited-mobile ~/123pan-mobile`。
 
 （不想用 git 也可以把整个目录压成 zip 传到手机，`unzip` 后同样跑 `termux/install.sh`。）
 
