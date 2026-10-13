@@ -95,10 +95,36 @@ def _ensure_settings_file(data_dir):
     return path
 
 
+def _ensure_ca_bundle():
+    """HTTPS 根证书：Chaquopy 里 certifi 的 cacert.pem 路径不是真实文件系统路径。
+
+    先给 certifi 一次机会（部分版本会被指向解出来的文件），拿不到就退回
+    Android 系统自带的 CA 目录——它就是 openssl hash 格式，requests 支持把
+    verify 指到目录。
+    """
+    if os.environ.get("REQUESTS_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE"):
+        return
+    try:
+        import certifi
+
+        if os.path.exists(certifi.where()):
+            return
+    except Exception:  # noqa: BLE001
+        pass
+    for candidate in (
+        "/apex/com.android.conscrypt/cacerts",
+        "/system/etc/security/cacerts",
+    ):
+        if os.path.isdir(candidate):
+            os.environ["REQUESTS_CA_BUNDLE"] = candidate
+            return
+
+
 def _bootstrap(data_dir, webui_dir):
     os.environ["PAN123_DATA_DIR"] = data_dir
     if webui_dir:
         os.environ["PAN123_WEBUI_DIR"] = webui_dir
+    _ensure_ca_bundle()
 
     import loadSettings
 

@@ -41,8 +41,8 @@ android {
 // Flask 的 templates/ 和 static/ 不是 .py，Chaquopy 只打包 Python 文件，
 // 所以构建时先复制成 assets，首次运行时由 Kotlin 解压到应用目录。
 tasks.register('webuiAssets', Copy) {
-    from('../app/templates') { into 'templates' }
-    from('../app/static') { into 'static' }
+    from('../app/templates') { into 'webui/templates' }
+    from('../app/static') { into 'webui/static' }
     into webuiAssetsDir
 }
 
