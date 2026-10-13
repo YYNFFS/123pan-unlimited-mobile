@@ -23,7 +23,7 @@ object PanPython {
 
     fun call(name: String, vararg args: Any): JSONObject {
         return try {
-            JSONObject(entry().callAttr(name, *args).asString())
+            JSONObject(entry().callAttr(name, *args).toString())
         } catch (e: Throwable) {
             JSONObject().put("ok", false).put("error", e.javaClass.name + ": " + e.message)
         }
