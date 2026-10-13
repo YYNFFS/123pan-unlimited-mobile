@@ -12,3 +12,9 @@ latest.db
 *_message_raw.json
 *_message_processed.json
 settings.yaml
+
+# Android / Gradle
+android/build/
+android/.gradle/
+android/local.properties
+*.apk

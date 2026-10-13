@@ -1,0 +1,71 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+    id 'org.jetbrains.kotlin.android' version '2.0.21'
+    id 'com.chaquo.python' version '17.1.0'
+}
+
+// Flask 界面资源的中转目录：构建时复制成 assets，运行时解压到应用目录
+def webuiAssetsDir = file("${buildDir}/generated/webuiAssets")
+
+android {
+    namespace 'com.pan123.unlimited'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pan123.unlimited'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+
+        // 只打 arm64：现代手机够用，APK 少一大截体积
+        ndk { abiFilters 'arm64-v8a' }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += [webuiAssetsDir]
+        }
+    }
+}
+
+// Flask 的 templates/ 和 static/ 不是 .py，Chaquopy 只打包 Python 文件，
+// 所以构建时先复制成 assets，首次运行时由 Kotlin 解压到应用目录。
+tasks.register('webuiAssets', Copy) {
+    from('../app/templates') { into 'templates' }
+    from('../app/static') { into 'static' }
+    into webuiAssetsDir
+}
+
+tasks.named('preBuild') {
+    dependsOn 'webuiAssets'
+}
+
+chaquopy {
+    defaultConfig {
+        version = '3.12'
+        pip {
+            // 全部是纯 Python 包或 Chaquopy 官方预编译 wheel，构建机不需要 NDK
+            install 'flask'
+            install 'pyyaml'
+            install 'requests'
+            install 'tqdm'
+            install 'beautifulsoup4'
+            install 'waitress'
+        }
+    }
+    sourceSets {
+        main {
+            srcDir '../app'
+        }
+    }
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">123Pan</string>
+    <string name="panel_title">123 云盘面板</string>
+    <string name="settings_title">服务设置</string>
+    <string name="channel_name">123Pan 服务</string>
+    <string name="starting">正在启动服务…</string>
+    <string name="stopped">服务未运行</string>
+    <string name="start">启动服务</string>
+    <string name="stop">停止服务</string>
+    <string name="open_panel">打开网页面板</string>
+    <string name="open_settings">设置</string>
+    <string name="auto_boot">开机后自动启动</string>
+    <string name="save">保存并重启服务</string>
+    <string name="copy_all">复制地址</string>
+    <string name="download_db">下载公共分享库</string>
+</resources>
